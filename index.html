@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKYLINE — Летайте выше обыденного | Демо-концепт авиакомпании</title>
+<meta name="description" content="SKYLINE — вымышленная авиакомпания. Демо-концепт сайта с интерактивным видеофоном.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;500;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#04070f;--gold:#e8b64c;--cyan:#5eead4;--sky:#7dd3fc;--txt:#f4f6ff;--mut:#a7b0cc;--glass:rgba(255,255,255,.07);--stroke:rgba(255,255,255,.14);--r:22px}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,sans-serif;overflow-x:hidden}
+::selection{background:var(--gold);color:#1a1206}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{font-family:'Unbounded',sans-serif}
+.mono{font-family:'JetBrains Mono',monospace}
+/* VIDEO BACKDROP */
+#sky{position:fixed;inset:-6%;z-index:0;overflow:hidden;background:#04070f}
+#sky video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.1s ease;filter:saturate(1.15) contrast(1.05)}
+#sky video.on{opacity:1}
+#skyCanvas{position:absolute;inset:0;width:100%;height:100%}
+#skyShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,7,15,.62) 0%,rgba(4,7,15,.30) 30%,rgba(4,7,15,.42) 62%,rgba(4,7,15,.88) 100%)}
+#skyGrain{position:absolute;inset:0;opacity:.09;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+#skyVin{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 46%,rgba(2,4,10,.72) 100%)}
+#progress{position:fixed;top:0;left:0;height:3px;width:0%;z-index:70;background:linear-gradient(90deg,var(--gold),var(--cyan),var(--sky));box-shadow:0 0 16px var(--gold)}
+#phase{position:fixed;left:20px;top:50%;transform:translateY(-50%) rotate(-90deg);z-index:40;letter-spacing:.32em;font-size:11px;color:var(--mut);white-space:nowrap;font-family:'JetBrains Mono'}
+#phase b{color:var(--gold)}
+#dots{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:40;display:flex;flex-direction:column;gap:11px}
+#dots i{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,.45);cursor:pointer;transition:.35s;display:block}
+#dots i.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 14px var(--gold);transform:scale(1.45)}
+#loader{position:fixed;inset:0;z-index:100;background:#03050c;display:flex;flex-direction:column;gap:20px;align-items:center;justify-content:center;transition:opacity .8s,visibility .8s}
+#loader.done{opacity:0;visibility:hidden}
+#loader .lg{font-family:'Unbounded';font-weight:900;font-size:clamp(26px,5vw,52px);letter-spacing:.1em}
+#loader .lg span{color:var(--gold)}
+#runway{width:min(440px,72vw);height:4px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden}
+#runway i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--cyan));box-shadow:0 0 12px var(--gold)}
+#loadpct{font-family:'JetBrains Mono';font-size:12px;letter-spacing:.3em;color:var(--mut)}
+nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:rgba(4,7,15,.5);backdrop-filter:blur(18px);border-bottom:1px solid var(--stroke)}
+.brand{display:flex;align-items:center;gap:12px;font-family:'Unbounded';font-weight:900;letter-spacing:.08em;font-size:16px}
+.plane{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:20px;background:linear-gradient(135deg,var(--gold),#b97e1e);box-shadow:0 0 22px rgba(232,182,76,.55)}
+.nav-links{display:flex;gap:24px;font-size:12.5px;letter-spacing:.12em;color:var(--mut);font-family:'JetBrains Mono'}
+.nav-links a{transition:.3s}.nav-links a:hover{color:#fff;text-shadow:0 0 12px var(--gold)}
+.nav-cta{font-family:'JetBrains Mono';font-size:12px;padding:10px 22px;border-radius:99px;border:1px solid var(--gold);color:var(--gold);letter-spacing:.08em;transition:.3s}
+.nav-cta:hover{background:var(--gold);color:#201503;box-shadow:0 0 26px rgba(232,182,76,.6)}
+@media(max-width:900px){.nav-links{display:none}}
+main{position:relative;z-index:10}
+section{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:128px 6vw 70px}
+.wrap{max-width:1180px;margin:0 auto;width:100%}
+.eyebrow{font-family:'JetBrains Mono';font-size:12px;letter-spacing:.28em;color:var(--gold)}
+h1.hero{font-size:clamp(42px,8.4vw,112px);line-height:.98;font-weight:900;margin:22px 0 16px}
+.grad{background:linear-gradient(92deg,#fff 5%,var(--gold) 42%,var(--cyan) 75%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 28px rgba(232,182,76,.3))}
+.ghost{color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.6)}
+.sub{color:var(--mut);font-size:clamp(15px,1.6vw,18.5px);line-height:1.7;max-width:640px;font-weight:300}
+.sub b{color:#fff;font-weight:600}
+.btns{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px}
+.btn{font-family:'Unbounded';font-size:13px;font-weight:700;padding:16px 32px;border-radius:99px;transition:.35s;display:inline-flex;gap:10px;align-items:center;border:1px solid transparent}
+.btn-gold{background:linear-gradient(90deg,#f3c860,#d9962b);color:#241703;box-shadow:0 10px 38px rgba(232,182,76,.4)}
+.btn-gold:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 16px 48px rgba(232,182,76,.55)}
+.btn-line{border-color:var(--stroke);background:var(--glass);backdrop-filter:blur(12px);color:#fff}
+.btn-line:hover{border-color:var(--cyan);box-shadow:0 0 24px rgba(94,234,212,.3);transform:translateY(-3px)}
+h2.tt{font-size:clamp(30px,4.4vw,58px);line-height:1.06;margin:18px 0 12px;font-weight:700}
+.glass{background:var(--glass);border:1px solid var(--stroke);border-radius:var(--r);backdrop-filter:blur(20px);padding:28px;position:relative;overflow:hidden;transition:transform .4s,box-shadow .4s,border-color .4s}
+.glass::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.55}
+.glass:hover{transform:translateY(-7px);border-color:rgba(232,182,76,.55);box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 40px rgba(232,182,76,.12)}
+.grid{display:grid;gap:20px;margin-top:34px}
+.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:920px){.g3,.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+@media(max-width:560px){.g3,.g4{grid-template-columns:1fr}}
+.pic{height:190px;border-radius:16px;margin-bottom:16px;background-size:cover;background-position:center;position:relative;overflow:hidden;border:1px solid var(--stroke)}
+.pic::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(3,5,12,.75))}
+.pic b{position:absolute;left:16px;bottom:14px;z-index:2;font-family:'Unbounded';font-size:19px;text-shadow:0 2px 18px #000}
+.price{font-family:'JetBrains Mono';color:var(--gold);font-size:13px;letter-spacing:.06em;margin-top:12px;display:block}
+.tag{display:inline-block;font-family:'JetBrains Mono';font-size:10.5px;letter-spacing:.1em;padding:5px 12px;border-radius:99px;margin-top:12px;border:1px solid var(--stroke);color:var(--cyan)}
+.marquee{overflow:hidden;white-space:nowrap;border-top:1px solid var(--stroke);border-bottom:1px solid var(--stroke);padding:18px 0;background:rgba(255,255,255,.03);backdrop-filter:blur(8px);position:relative;z-index:10}
+.mq{display:inline-flex;animation:mq 28s linear infinite;font-family:'Unbounded';font-weight:500;font-size:clamp(14px,1.9vw,20px);letter-spacing:.12em;color:rgba(255,255,255,.8)}
+.mq span{padding:0 26px}.mq span i{color:var(--gold);font-style:normal;padding-right:52px}
+@keyframes mq{to{transform:translateX(-50%)}}
+.booking{margin-top:30px;max-width:860px;background:rgba(6,9,20,.68);border:1px solid var(--stroke);border-radius:20px;backdrop-filter:blur(22px);padding:20px;display:grid;grid-template-columns:1.2fr 1.2fr 1fr .8fr auto;gap:12px;align-items:end}
+.booking label{font-family:'JetBrains Mono';font-size:10.5px;letter-spacing:.2em;color:var(--mut);display:block;margin-bottom:8px}
+.booking select,.booking input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--stroke);border-radius:12px;color:#fff;padding:13px 14px;font-size:14px;outline:none;font-family:'Inter'}
+.booking select option{background:#0a0f22}
+.booking select:focus,.booking input:focus{border-color:var(--gold);box-shadow:0 0 14px rgba(232,182,76,.3)}
+#bookBtn{background:linear-gradient(90deg,#f3c860,#d9962b);border:none;border-radius:12px;padding:14px 26px;font-weight:800;font-family:'Unbounded';font-size:13px;cursor:pointer;color:#241703;transition:.3s;white-space:nowrap}
+#bookBtn:hover{transform:scale(1.05);box-shadow:0 0 24px rgba(232,182,76,.6)}
+#bookOut{grid-column:1/-1;font-family:'JetBrains Mono';font-size:13px;color:var(--cyan);min-height:20px}
+@media(max-width:920px){.booking{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.booking{grid-template-columns:1fr}}
+.tabs{display:flex;gap:10px;margin-top:26px;flex-wrap:wrap}
+.tab{font-family:'JetBrains Mono';font-size:12px;letter-spacing:.1em;padding:11px 22px;border-radius:99px;border:1px solid var(--stroke);background:rgba(255,255,255,.04);color:var(--mut);cursor:pointer;transition:.3s}
+.tab.on,.tab:hover{color:#241703;background:var(--gold);border-color:var(--gold);box-shadow:0 0 18px rgba(232,182,76,.5)}
+.cabin{display:none}.cabin.on{display:block;animation:fadeUp .5s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}}
+.stat-n{font-family:'Unbounded';font-weight:900;font-size:clamp(30px,3.8vw,50px);background:linear-gradient(180deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-l{font-family:'JetBrains Mono';font-size:10.5px;letter-spacing:.22em;color:var(--mut);margin-top:8px}
+.ctr{text-align:center}.ctr .sub{margin:0 auto}
+.rev{max-width:760px;margin:34px auto 0;position:relative}
+.rev-track{display:flex;gap:16px;overflow:hidden;scroll-behavior:smooth}
+.rev-card{min-width:100%;text-align:left}
+.stars{color:var(--gold);letter-spacing:.2em;margin-bottom:12px}
+.rev-nav{display:flex;gap:12px;justify-content:center;margin-top:18px}
+.rev-nav button{width:48px;height:48px;border-radius:50%;border:1px solid var(--stroke);background:var(--glass);color:#fff;font-size:18px;cursor:pointer;transition:.3s}
+.rev-nav button:hover{border-color:var(--gold);box-shadow:0 0 16px rgba(232,182,76,.4)}
+.faq{max-width:760px;margin:30px auto 0;text-align:left}
+.faq-item{border:1px solid var(--stroke);border-radius:16px;margin-bottom:12px;background:rgba(255,255,255,.04);backdrop-filter:blur(14px);overflow:hidden}
+.faq-q{padding:18px 22px;cursor:pointer;font-weight:600;font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.faq-q span{color:var(--gold);font-size:20px;transition:.3s;flex-shrink:0}
+.faq-item.open .faq-q span{transform:rotate(45deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .45s ease;color:var(--mut);font-size:14px;line-height:1.7}
+.faq-a p{padding:0 22px 20px}
+.hint{margin-top:46px;display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--mut);font-family:'JetBrains Mono';font-size:11px;letter-spacing:.3em}
+.mouse{width:26px;height:42px;border:2px solid rgba(255,255,255,.4);border-radius:14px;position:relative}
+.mouse::after{content:'';position:absolute;left:50%;top:8px;width:4px;height:8px;margin-left:-2px;border-radius:4px;background:var(--gold);animation:wheel 1.8s infinite}
+@keyframes wheel{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(14px)}}
+.reveal{opacity:0;transform:translateY(46px)}
+footer{position:relative;z-index:10;text-align:center;padding:44px 20px 50px;color:var(--mut);font-size:13px;border-top:1px solid var(--stroke);background:rgba(3,5,12,.7);backdrop-filter:blur(14px);line-height:2}
+footer b{color:#fff}
+.badge{display:inline-flex;align-items:center;gap:10px;font-family:'JetBrains Mono';font-size:12px;letter-spacing:.22em;color:var(--gold);border:1px solid rgba(232,182,76,.4);padding:9px 18px;border-radius:99px;background:rgba(232,182,76,.08)}
+.badge .dot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 10px #34d399;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+
+</style>
+</head>
+<body>
+<div id="loader"><div class="lg">SKY<span>LINE</span> ✈</div><div id="runway"><i id="runfill"></i></div><div id="loadpct">BOARDING ... 0%</div></div>
+<div id="sky"><canvas id="skyCanvas"></canvas>
+<video id="v0" muted loop playsinline preload="auto" src="https://cdn.coverr.co/videos/coverr-takeoff-into-the-sunset-5247/1080p.mp4"></video>
+<video id="v1" muted loop playsinline preload="auto" src="https://cdn.coverr.co/videos/coverr-flying-above-the-clouds-5057/1080p.mp4"></video>
+<video id="v2" muted loop playsinline preload="auto" src="https://cdn.coverr.co/videos/coverr-city-lights-at-night-5396/1080p.mp4"></video>
+<video id="v3" muted loop playsinline preload="auto" src="https://cdn.coverr.co/videos/coverr-ocean-waves-from-above-5155/1080p.mp4"></video>
+<div id="skyShade"></div><div id="skyGrain"></div><div id="skyVin"></div></div>
+<div id="progress"></div>
+<div id="phase">FLIGHT <b>//</b> PHASE <b id="phaseNum">01 · TAKEOFF</b></div>
+<div id="dots"><i class="on" data-t="hero"></i><i data-t="dest"></i><i data-t="cabin"></i><i data-t="why"></i><i data-t="fleet"></i><i data-t="book"></i></div>
+<nav><div class="brand"><div class="plane">✈</div>SKYLINE</div><div class="nav-links"><a href="#hero">01 · РЕЙС</a><a href="#dest">02 · НАПРАВЛЕНИЯ</a><a href="#cabin">03 · САЛОН</a><a href="#fleet">04 · ФЛОТ</a><a href="#book">05 · БИЛЕТЫ</a></div><a class="nav-cta" href="#book">ЗАБРОНИРОВАТЬ</a></nav>
+<main>
+<section id="hero"><div class="wrap"><div class="badge reveal"><span class="dot"></span>120+ НАПРАВЛЕНИЙ · ДЕМО-КОНЦЕПТ</div><h1 class="hero reveal">ЛЕТАЙТЕ<br><span class="grad">ВЫШЕ</span> <span class="ghost">ОБЫДЕННОГО</span></h1><p class="sub reveal">Вымышленная авиакомпания <b>SKYLINE</b>: тишина бизнес-класса, закаты в иллюминаторе и пунктуальность как религия. <b>Листайте вниз</b> — кинофон за спиной будет меняться вместе с полётом.</p><div class="booking reveal"><div><label>ОТКУДА</label><select id="from"><option>Москва (SVO)</option><option>Санкт-Петербург (LED)</option><option>Сочи (AER)</option><option>Казань (KZN)</option></select></div><div><label>КУДА</label><select id="to"><option>Париж (PAR)</option><option>Токио (TYO)</option><option>Мальдивы (MLE)</option><option>Нью-Йорк (NYC)</option><option>Дубай (DXB)</option><option>Бали (DPS)</option></select></div><div><label>ДАТА</label><input type="date" id="date" value="2026-10-15"></div><div><label>ПАССАЖИРЫ</label><select id="pax"><option>1</option><option>2</option><option>3</option><option>4</option></select></div><button id="bookBtn">НАЙТИ ➤</button><div id="bookOut">✦ Выберите рейс — нажмите НАЙТИ, чтобы подобрать вариант.</div></div><div class="btns reveal"><a class="btn btn-gold magnetic" href="#dest">🧭 Смотреть направления</a><a class="btn btn-line magnetic" href="#cabin">💺 Классы салона</a></div><div class="hint reveal"><div class="mouse"></div>SCROLL — ПРОДОЛЖИТЬ ПОЛЁТ</div></div></section>
+<div class="marquee"><div class="mq" id="mq"><span>ПАРИЖ <i>✦</i></span><span>ТОКИО <i>✦</i></span><span>МАЛЬДИВЫ <i>✦</i></span><span>НЬЮ-ЙОРК <i>✦</i></span><span>ДУБАЙ <i>✦</i></span><span>БАЛИ <i>✦</i></span><span>РИМ <i>✦</i></span><span>СЕУЛ <i>✦</i></span></div></div>
+<section id="dest"><div class="wrap"><div class="eyebrow reveal">// 01 — НАПРАВЛЕНИЯ</div><h2 class="tt reveal">Куда полетим <span class="grad">в этом сезоне?</span></h2><p class="sub reveal">Шесть хитовых маршрутов вымышленной сети SKYLINE. Цены — <b>демонстрационные</b>, самолёты — с картинок, мечты — настоящие.</p><div class="grid g3"><div class="glass tilt reveal"><div class="pic" style="background-image:url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=70&auto=format&fit=crop')"><b>Париж</b></div><h3>PAR · романтика</h3><p class="sub" style="font-size:14px">Утренний рейс, кофе с круассаном и вид на башню уже на закате.</p><span class="price">от 24 900 ₽ · 3ч 55мин</span><span class="tag">ХИТ ПРОДАЖ</span></div><div class="glass tilt reveal"><div class="pic" style="background-image:url('https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=70&auto=format&fit=crop')"><b>Токио</b></div><h3>TYO · неон и сакура</h3><p class="sub" style="font-size:14px">Ночной перелёт, полный пакет развлечений и тихая кабина.</p><span class="price">от 49 900 ₽ · 9ч 20мин</span><span class="tag">ДАЛЕКО · КРАСИВО</span></div><div class="glass tilt reveal"><div class="pic" style="background-image:url('https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&q=70&auto=format&fit=crop')"><b>Мальдивы</b></div><h3>MLE · океан</h3><p class="sub" style="font-size:14px">Прямой рейс к бирюзовой воде. Гидросамолёт до отеля — в подарок.</p><span class="price">от 59 900 ₽ · 8ч 45мин</span><span class="tag">ПЛЯЖ · РЕЛАКС</span></div><div class="glass tilt reveal"><div class="pic" style="background-image:url('https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=70&auto=format&fit=crop')"><b>Нью-Йорк</b></div><h3>NYC · город мечты</h3><p class="sub" style="font-size:14px">Вечерний вылет — утром уже на Пятой авеню со стаканчиком кофе.</p><span class="price">от 44 900 ₽ · 10ч 10мин</span><span class="tag">БИЗНЕС-ХИТ</span></div><div class="glass tilt reveal"><div class="pic" style="background-image:url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=70&auto=format&fit=crop')"><b>Дубай</b></div><h3>DXB · роскошь</h3><p class="sub" style="font-size:14px">Лайнер с душевой в бизнесе и шампанским при посадке.</p><span class="price">от 34 900 ₽ · 5ч 30мин</span><span class="tag">ЛАЙНЕР · ЛЮКС</span></div><div class="glass tilt reveal"><div class="pic" style="background-image:url('https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=70&auto=format&fit=crop')"><b>Бали</b></div><h3>DPS · джунгли</h3><p class="sub" style="font-size:14px">Сёрф, йога и вулканы. Самый медитативный маршрут сети.</p><span class="price">от 54 900 ₽ · 11ч 05мин</span><span class="tag">ДЗЕН · СЁРФ</span></div></div></div></section>
+<section id="cabin"><div class="wrap"><div class="eyebrow reveal">// 02 — КЛАССЫ САЛОНА</div><h2 class="tt reveal">Выберите свою <span class="grad">высоту комфорта</span></h2><div class="tabs reveal"><div class="tab on" data-c="eco">ECONOMY</div><div class="tab" data-c="com">COMFORT</div><div class="tab" data-c="biz">BUSINESS</div></div><div class="cabin on reveal" id="c-eco"><div class="grid g3"><div class="glass"><h3>💺 Smart-кресло</h3><p class="sub" style="font-size:14px">Эргономика, 31 дюйм для ног, USB-C и персональный экран 13".</p></div><div class="glass"><h3>🍱 Кухня</h3><p class="sub" style="font-size:14px">Горячее питание, вегетарианская опция и неограниченный чай/кофе.</p></div><div class="glass"><h3>🎬 Медиа</h3><p class="sub" style="font-size:14px">400+ фильмов, сериалы, игры и карта полёта в реальном времени.</p></div></div></div><div class="cabin" id="c-com"><div class="grid g3"><div class="glass"><h3>🛋 +20% места</h3><p class="sub" style="font-size:14px">Шире кресло, отдельный занавес и приоритетная посадка SkyPriority.</p></div><div class="glass"><h3>🥂 Улучшенное меню</h3><p class="sub" style="font-size:14px">Ресторанная подача, вино и десерт от шефа.</p></div><div class="glass"><h3>🧳 +Багаж</h3><p class="sub" style="font-size:14px">Два места по 23 кг и быстрая выдача на ленте.</p></div></div></div><div class="cabin" id="c-biz"><div class="grid g3"><div class="glass"><h3>🛏 Кровать 180°</h3><p class="sub" style="font-size:14px">Кресло-кровать lie-flat, пижама, тапочки и дорожный набор.</p></div><div class="glass"><h3>🍾 Лаунж и спа</h3><p class="sub" style="font-size:14px">Залы SkyLounge, душевые, массаж и шампанское перед вылетом.</p></div><div class="glass"><h3>🤵 Персональный сервис</h3><p class="sub" style="font-size:14px">Отдельный экипаж, меню на заказ и лимузин до трапа.</p></div></div></div></div></section>
+<section id="why"><div class="wrap ctr"><div class="eyebrow reveal">// 03 — ПОЧЕМУ МЫ</div><h2 class="tt reveal">Цифры, которые <span class="grad">говорят сами</span></h2><div class="grid g4"><div class="glass reveal"><div class="stat-n" data-count="120">0</div><div class="stat-l">НАПРАВЛЕНИЙ</div></div><div class="glass reveal"><div class="stat-n" data-count="98">0</div><div class="stat-l">% ПУНКТУАЛЬНОСТЬ</div></div><div class="glass reveal"><div class="stat-n" data-count="12">0</div><div class="stat-l">МЛН ПАССАЖИРОВ</div></div><div class="glass reveal"><div class="stat-n" data-count="49" data-dec="1">0</div><div class="stat-l">РЕЙТИНГ / 5.0</div></div></div></div></section>
+<section id="fleet"><div class="wrap"><div class="eyebrow reveal">// 04 — ФЛОТ</div><h2 class="tt reveal">Наш флот — <span class="grad">новый и тихий</span></h2><p class="sub reveal">Средний возраст борта — <b>3.2 года</b>. Только вымышленные ливреи концепта: для красоты и экологичности.</p><div class="grid g3"><div class="glass tilt reveal"><div class="pic" style="background-image:url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=70&auto=format&fit=crop')"><b>SkyLiner A380</b></div><h3>🐋 Флагман · 516 мест</h3><p class="sub" style="font-size:14px">Двухпалубный гигант для дальних трасс. Душевая в бизнесе.</p><span class="tag">12 БОРТОВ</span></div><div class="glass tilt reveal"><div class="pic" style="background-image:url('https://images.unsplash.com/photo-1559060017-445fb9722f2a?w=800&q=70&auto=format&fit=crop')"><b>SkyFox 787</b></div><h3>🦊 Дримлайнер · 296 мест</h3><p class="sub" style="font-size:14px">Композитный, экономичный, с огромными иллюминаторами.</p><span class="tag">24 БОРТА</span></div><div class="glass tilt reveal"><div class="pic" style="background-image:url('https://images.unsplash.com/photo-1521727857535-28d2047314ac?w=800&q=70&auto=format&fit=crop')"><b>SkyBee 321neo</b></div><h3>🐝 Средний · 196 мест</h3><p class="sub" style="font-size:14px">Тихий двигатель, спутниковый Wi-Fi и USB у каждого кресла.</p><span class="tag">36 БОРТОВ</span></div></div></div></section>
+<section id="reviews"><div class="wrap ctr"><div class="eyebrow reveal">// 05 — ОТЗЫВЫ</div><h2 class="tt reveal">Пассажиры <span class="grad">в восторге</span></h2><div class="rev reveal"><div class="rev-track" id="revTrack"><div class="glass rev-card"><div class="stars">★★★★★</div><h3>«Лучший перелёт в жизни»</h3><p class="sub" style="font-size:14.5px;margin-top:10px">Летела Москва — Токио. Кресло-кровать, вкуснейшая рыба, экипаж предугадывал желания. Посадка — мягче не бывает. — <b>Алина К.</b></p></div><div class="glass rev-card"><div class="stars">★★★★★</div><h3>«Дети впервые не капризничали»</h3><p class="sub" style="font-size:14.5px;margin-top:10px">Детский набор, мультики на экране, душевная бортпроводница Марина. 9 часов пролетели незаметно. — <b>Дмитрий С.</b></p></div><div class="glass rev-card"><div class="stars">★★★★★</div><h3>«Бизнес, ради которого возвращаешься»</h3><p class="sub" style="font-size:14.5px;margin-top:10px">Лаунж с душем, лимузин к трапу, шампанское. SKYLINE переопределил для меня понятие сервиса. — <b>Игорь В.</b></p></div></div><div class="rev-nav"><button id="revPrev" aria-label="Назад">←</button><button id="revNext" aria-label="Вперёд">→</button></div></div></div></section>
+<section id="book"><div class="wrap ctr"><div class="badge reveal"><span class="dot"></span>FINAL CALL · ПОСАДКА ИДЁТ</div><h2 class="tt reveal" style="font-size:clamp(34px,6vw,84px)">Ваш самолёт<br><span class="grad">уже ждёт ✈</span></h2><p class="sub reveal">Тарифы концепта: все цены и маршруты вымышлены. Зато красота — настоящая.</p><div class="grid g3" style="text-align:left"><div class="glass tilt reveal"><h3>🌤 Light</h3><p class="sub" style="font-size:14px">Ручная кладь 10 кг, smart-кресло, питание за доп. плату.</p><span class="price">от 9 900 ₽</span><div class="btns"><a class="btn btn-line magnetic" href="#hero" style="font-size:11px;padding:13px 24px">Выбрать Light</a></div></div><div class="glass tilt reveal" style="border-color:rgba(232,182,76,.6);box-shadow:0 0 40px rgba(232,182,76,.18)"><h3>⭐ Plus · хит</h3><p class="sub" style="font-size:14px">Багаж 23 кг, горячее питание, выбор места, приоритет.</p><span class="price">от 16 900 ₽</span><div class="btns"><a class="btn btn-gold magnetic" href="#hero" style="font-size:11px;padding:13px 24px">Выбрать Plus</a></div></div><div class="glass tilt reveal"><h3>👑 Max</h3><p class="sub" style="font-size:14px">Бизнес-кресло, лаунж, 2×32 кг, лимузин, возврат без штрафов.</p><span class="price">от 49 900 ₽</span><div class="btns"><a class="btn btn-line magnetic" href="#hero" style="font-size:11px;padding:13px 24px">Выбрать Max</a></div></div></div><div class="faq reveal"><div class="faq-item"><div class="faq-q">Можно ли вернуть билет? <span>+</span></div><div class="faq-a"><p>Концепт виртуальный, поэтому возврат всегда 100% и с улыбкой. В реальной жизни смотрите правила тарифа при бронировании.</p></div></div><div class="faq-item"><div class="faq-q">Есть ли Wi-Fi на борту? <span>+</span></div><div class="faq-a"><p>Да, спутниковый интернет на всех бортах флота концепта. Первые 30 минут — бесплатно для всех пассажиров.</p></div></div><div class="faq-item"><div class="faq-q">Это настоящая авиакомпания? <span>+</span></div><div class="faq-a"><p>Нет. SKYLINE — полностью вымышленный демо-концепт для демонстрации дизайна. Все названия, цены и контакты случайны.</p></div></div></div></div></section>
+</main>
+<footer>Сделано с 💛 <b>SKYLINE</b> · вымышленный демо-концепт · не является реальной авиакомпанией<br><span class="mono" style="font-size:11px">scroll-video · GSAP · glassmorphism · 2026</span></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+// ---------- PRELOADER ----------
+(function(){let p=0;const f=document.getElementById('runfill'),t=document.getElementById('loadpct');const iv=setInterval(()=>{p=Math.min(100,p+Math.random()*13);f.style.width=p+'%';t.textContent='BOARDING ... '+Math.floor(p)+'%';if(p>=100){clearInterval(iv);setTimeout(()=>document.getElementById('loader').classList.add('done'),350);}},110);setTimeout(()=>document.getElementById('loader').classList.add('done'),6000);})();
+// ---------- SKY: canvas fallback (animated gradient sky) ----------
+const cv=document.getElementById('skyCanvas'),cx=cv.getContext('2d');
+function sizeCv(){cv.width=innerWidth;cv.height=innerHeight;}sizeCv();addEventListener('resize',sizeCv);
+const SKY_STOPS=[[[6,10,28],[232,130,60],[20,30,70]],[[20,40,90],[140,200,255],[10,16,40]],[[8,10,34],[90,60,160],[4,6,18]],[[10,26,52],[60,180,200],[4,10,20]]];
+let scrollS=0,scrollT=0,videoOK=false;
+function mix(a,b,f){return[Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)];}
+function phaseOf(t){const x=Math.min(.9999,Math.max(0,t))*(SKY_STOPS.length-1),i=Math.floor(x),f=x-i;return{i,f,A:SKY_STOPS[i],B:SKY_STOPS[Math.min(i+1,SKY_STOPS.length-1)]};}
+function drawSky(t){const W=cv.width,H=cv.height;const P=phaseOf(scrollS);
+const top=mix(P.A[0],P.B[0],P.f),mid=mix(P.A[1],P.B[1],P.f),bot=mix(P.A[2],P.B[2],P.f);
+const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,`rgb(${top})`);g.addColorStop(.55,`rgb(${mid})`);g.addColorStop(1,`rgb(${bot})`);
+cx.fillStyle=g;cx.fillRect(0,0,W,H);
+// sun glow
+const sx=W*(.5+Math.sin(scrollS*3)*.2),sy=H*(.42-scrollS*.15);
+const rg=cx.createRadialGradient(sx,sy,0,sx,sy,W*.35);rg.addColorStop(0,'rgba(255,220,150,.55)');rg.addColorStop(1,'rgba(255,220,150,0)');
+cx.fillStyle=rg;cx.fillRect(0,0,W,H);
+// clouds: drifting ellipses
+cx.fillStyle='rgba(255,255,255,.10)';
+const nC=14;for(let i=0;i<nC;i++){const px=((i*197.3+t*12*(1+i*.2))%(W+400))-200;const py=H*(.25+((i*53)%50)/100)-scrollS*H*.2;cx.beginPath();cx.ellipse(px,py,120+(i%4)*40,16+(i%3)*8,0,0,7);cx.fill();}
+// stars fade in on night phases
+if(scrollS>.45){cx.fillStyle=`rgba(255,255,255,${(scrollS-.45)*1.4})`;for(let i=0;i<90;i++){const px=(i*97.7)%W,py=(i*57.3)%(H*.5);cx.fillRect(px,py,1.6,1.6);}}}
+// ---------- VIDEO LAYERS driven by scroll ----------
+const vids=[0,1,2,3].map(i=>document.getElementById('v'+i));
+const NAMES=['01 · TAKEOFF','02 · CRUISE','03 · NIGHT CITY','04 · LANDING'];
+vids.forEach(v=>{v.muted=true;const tryPlay=()=>{v.play().then(()=>{videoOK=true;}).catch(()=>{});};v.addEventListener('canplay',tryPlay,{once:true});setTimeout(tryPlay,1500);v.addEventListener('error',()=>{v.style.display='none';});});
+let cur=-1;
+function applyVideoPhase(){const P=phaseOf(scrollS);const idx=Math.round(scrollS*(vids.length-1));
+if(idx!==cur){cur=idx;vids.forEach((v,i)=>v.classList.toggle('on',i===idx));const el=document.getElementById('phaseNum');if(el)el.textContent=NAMES[idx];}
+if(videoOK&&vids[idx]&&vids[idx].duration){try{const d=vids[idx].duration;vids[idx].currentTime=Math.min(d-.2,(P.f+P.i)*d*.999);}catch(e){}}
+const z=1+scrollS*.16;document.getElementById('sky').style.transform=`scale(${z})`;}
+// ---------- SCROLL ----------
+addEventListener('scroll',()=>{const h=document.documentElement;scrollT=h.scrollTop/Math.max(1,(h.scrollHeight-innerHeight));document.getElementById('progress').style.width=(scrollT*100)+'%';},{passive:true});
+(function raf(t){requestAnimationFrame(raf);scrollS+=(scrollT-scrollS)*.07;drawSky(t/1000);applyVideoPhase();})(0);
+// ---------- GSAP reveals, counters, tilt, magnetic ----------
+gsap.registerPlugin(ScrollTrigger);
+document.querySelectorAll('.reveal').forEach(el=>{gsap.to(el,{opacity:1,y:0,duration:1,ease:'power3.out',scrollTrigger:{trigger:el,start:'top 88%'}});});
+gsap.to('#mq',{xPercent:-22,ease:'none',scrollTrigger:{trigger:'.marquee',start:'top bottom',end:'bottom top',scrub:1}});
+document.querySelectorAll('.stat-n').forEach(el=>{const end=+el.dataset.count,dec=+(el.dataset.dec||0);ScrollTrigger.create({trigger:el,start:'top 90%',once:true,onEnter:()=>{const o={v:0};gsap.to(o,{v:end,duration:2,ease:'power2.out',onUpdate:()=>{let s=dec?(o.v/10).toFixed(1):Math.round(o.v).toString();if(!dec&&end>=100)s+='+';el.textContent=s;}});}});});
+document.querySelectorAll('.tilt').forEach(card=>{card.addEventListener('mousemove',e=>{const r=card.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;card.style.transform=`perspective(900px) rotateY(${x*9}deg) rotateX(${-y*9}deg) translateY(-6px)`;});card.addEventListener('mouseleave',()=>{card.style.transform='';});});
+document.querySelectorAll('.magnetic').forEach(b=>{b.addEventListener('mousemove',e=>{const r=b.getBoundingClientRect();gsap.to(b,{x:(e.clientX-r.left-r.width/2)*.22,y:(e.clientY-r.top-r.height/2)*.3,duration:.4});});b.addEventListener('mouseleave',()=>gsap.to(b,{x:0,y:0,duration:.5,ease:'elastic.out(1,.4)'}));});
+// dots nav
+const dots=[...document.querySelectorAll('#dots i')];
+['hero','dest','cabin','why','fleet','book'].forEach((id,i)=>{ScrollTrigger.create({trigger:'#'+id,start:'top center',end:'bottom center',onToggle:s=>{if(s.isActive){dots.forEach(d=>d.classList.remove('on'));if(dots[i])dots[i].classList.add('on');}}});});
+dots.forEach(d=>d.addEventListener('click',()=>{const t=document.getElementById(d.dataset.t);if(t)t.scrollIntoView({behavior:'smooth'});}));
+// tabs
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');document.querySelectorAll('.cabin').forEach(c=>c.classList.remove('on'));const c=document.getElementById('c-'+t.dataset.c);if(c){c.classList.add('on');gsap.fromTo(c,{opacity:0,y:14},{opacity:1,y:0,duration:.45});}}));
+// reviews slider
+(function(){const tr=document.getElementById('revTrack');if(!tr)return;let i=0;const n=tr.children.length;function go(k){i=(k+n)%n;tr.scrollTo({left:tr.clientWidth*i,behavior:'smooth'});}document.getElementById('revPrev').addEventListener('click',()=>go(i-1));document.getElementById('revNext').addEventListener('click',()=>go(i+1));setInterval(()=>{if(document.hidden)return;go(i+1);},6000);})();
+// faq
+document.querySelectorAll('.faq-item').forEach(it=>{const q=it.querySelector('.faq-q'),a=it.querySelector('.faq-a');q.addEventListener('click',()=>{const open=it.classList.contains('open');document.querySelectorAll('.faq-item.open').forEach(o=>{o.classList.remove('open');o.querySelector('.faq-a').style.maxHeight='0px';});if(!open){it.classList.add('open');a.style.maxHeight=a.scrollHeight+'px';}});});
+// booking demo
+document.getElementById('bookBtn').addEventListener('click',()=>{const f=document.getElementById('from').value,t=document.getElementById('to').value,d=document.getElementById('date').value||'2026-10-15',p=document.getElementById('pax').value;const price=(9900+Math.floor(Math.random()*40000)).toLocaleString('ru-RU');const out=document.getElementById('bookOut');out.textContent='✈ '+f+' → '+t+' · '+d+' · '+p+' пасс. — найден вариант от '+price+' ₽ (демо, бронирование вымышлено)';gsap.fromTo(out,{opacity:0,y:8},{opacity:1,y:0,duration:.5});});
+</script>
+</body>
+</html>
+</body>
+</html>
