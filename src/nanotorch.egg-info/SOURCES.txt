@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/nanotorch/__init__.py
+src/nanotorch.egg-info/PKG-INFO
+src/nanotorch.egg-info/SOURCES.txt
+src/nanotorch.egg-info/dependency_links.txt
+src/nanotorch.egg-info/requires.txt
+src/nanotorch.egg-info/top_level.txt
+src/nanotorch/scalar/__init__.py
+tests/test_package.py
