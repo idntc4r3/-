@@ -1,6 +1,19 @@
 """Scalar computation-graph sub-package.
 
-This module will expose the ``Value`` node class once Day 2 is implemented.
+Public API
+----------
+Value
+    A single node in the scalar autograd DAG.
+
+Example::
+
+    from nanotorch.scalar import Value
+
+    x = Value(2.0, label='x')
+    y = Value(3.0, label='y')
+    # arithmetic operations (Days 3–8) will be added here
 """
 
-__all__: list[str] = []
+from nanotorch.scalar.value import Value
+
+__all__ = ["Value"]
