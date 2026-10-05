@@ -1,0 +1,112 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nanotorch"
+version = "0.1.0"
+description = "A lightweight ML tensor framework built from scratch (PyTorch-like), following strict TDD."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "NanoTorch Contributors" }]
+keywords = ["machine-learning", "autograd", "neural-network", "numpy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "torch>=2.2",          # reference implementation for gradient checks
+    "mypy>=1.10",
+    "ruff>=0.4",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths     = ["tests"]
+addopts       = "-v --tb=short --strict-markers"
+markers       = [
+    "slow: marks tests as slow (deselect with -m 'not slow')",
+    "scalar: scalar engine tests",
+    "tensor: tensor engine tests",
+]
+
+# ---------------------------------------------------------------------------
+# ruff – linter + formatter
+# ---------------------------------------------------------------------------
+[tool.ruff]
+src            = ["src"]
+line-length    = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ANN", # flake8-annotations (type hints)
+    "D",   # pydocstring
+]
+ignore = [
+    "D100", # Missing docstring in public module  (added incrementally)
+    "D104", # Missing docstring in public package (added incrementally)
+    "ANN101", # Missing type annotation for `self`
+    "ANN102", # Missing type annotation for `cls`
+]
+
+[tool.ruff.lint.pydocstring-convention]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["nanotorch"]
+
+[tool.ruff.format]
+quote-style              = "double"
+indent-style             = "space"
+skip-magic-trailing-comma = false
+
+# ---------------------------------------------------------------------------
+# mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version       = "3.11"
+strict               = true
+warn_return_any      = true
+warn_unused_ignores  = true
+show_error_codes     = true
+exclude              = ["tests/"]
+
+[[tool.mypy.overrides]]
+module = ["numpy.*", "torch.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source   = ["nanotorch"]
+branch   = true
+parallel = true
+
+[tool.coverage.report]
+show_missing  = true
+skip_covered  = false
+fail_under    = 80
