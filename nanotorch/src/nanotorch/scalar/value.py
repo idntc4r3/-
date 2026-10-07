@@ -224,3 +224,80 @@ class Value:
             5.0
         """
         return self.__add__(other)
+
+    # ------------------------------------------------------------------
+    # Arithmetic: multiplication
+    # ------------------------------------------------------------------
+
+    def __mul__(self, other: Value | Numeric) -> Value:
+        """Forward pass of multiplication: c = self * other.
+
+        Mathematical background:
+            Given  c = a · b, the partial derivatives are::
+
+                ∂c/∂a = b
+                ∂c/∂b = a
+
+            By the chain rule::
+
+                ∂L/∂a += ∂L/∂c · b
+                ∂L/∂b += ∂L/∂c · a
+
+            Note that ``self.data`` and ``other.data`` are captured **by
+            value** inside the closure at forward-pass time.  This is
+            essential: if the same ``Value`` node appears on both sides
+            (e.g. ``a * a``), ``other`` is the *same object* as ``self``,
+            so reading ``other.data`` later would give the updated value
+            rather than the original.  The snapshot avoids this hazard.
+
+        Args:
+            other: The right-hand operand.  Raw scalars (int / float) are
+                   wrapped in a leaf ``Value`` automatically.
+
+        Returns:
+            A new ``Value`` node whose ``data = self.data * other.data``
+            and whose ``_backward`` propagates scaled gradients.
+
+        Example:
+            >>> a = Value(2.0)
+            >>> b = Value(3.0)
+            >>> c = a * b          # forward: c.data == 6.0
+            >>> c.grad = 1.0
+            >>> c._backward()      # backward: a.grad == 3.0, b.grad == 2.0
+        """
+        other = other if isinstance(other, Value) else Value(other)
+        out = Value(self.data * other.data, _children=(self, other), _op="*")
+
+        # Snapshot the forward-pass values so the closure is hermetic.
+        self_data = self.data
+        other_data = other.data
+
+        def _backward() -> None:
+            # ∂L/∂self  += ∂L/∂out · other_data   (= ∂c/∂a · upstream)
+            # ∂L/∂other += ∂L/∂out · self_data    (= ∂c/∂b · upstream)
+            self.grad += out.grad * other_data
+            other.grad += out.grad * self_data
+
+        out._backward = _backward
+        return out
+
+    def __rmul__(self, other: Value | Numeric) -> Value:
+        """Support  scalar * Value  (reflected multiplication).
+
+        Python calls ``other.__rmul__(self)`` when ``other.__mul__(self)``
+        returns ``NotImplemented``.  Multiplication is commutative
+        (a · b = b · a), so we simply delegate to ``__mul__``.
+
+        Args:
+            other: Left-hand operand (typically a raw int or float).
+
+        Returns:
+            ``self.__mul__(other)`` — same result as ``Value.__mul__``.
+
+        Example:
+            >>> v = Value(3.0)
+            >>> result = 2 * v     # calls v.__rmul__(2)
+            >>> result.data
+            6.0
+        """
+        return self.__mul__(other)
