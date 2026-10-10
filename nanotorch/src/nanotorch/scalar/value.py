@@ -301,3 +301,92 @@ class Value:
             6.0
         """
         return self.__mul__(other)
+
+    # ------------------------------------------------------------------
+    # Arithmetic: exponentiation
+    # ------------------------------------------------------------------
+
+    def __pow__(self, exponent: int | float) -> Value:
+        """Forward pass of exponentiation: c = self ** exponent.
+
+        Mathematical background:
+            Given  c = xⁿ  the derivative is::
+
+                ∂c/∂x = n · x^(n-1)
+
+            By the chain rule::
+
+                ∂L/∂x += ∂L/∂c · n · x^(n-1)
+
+            The base value ``self.data`` is snapshotted at forward time so
+            the closure is hermetic (same reason as in ``__mul__``).
+
+            This implementation supports any real exponent (int or float),
+            so fractional powers (``x ** 0.5``) and negative powers
+            (``x ** -1``) are both valid, subject to the usual domain
+            constraints (e.g.  ``(-1) ** 0.5``  would produce NaN).
+
+        Args:
+            exponent: The power to raise ``self`` to.  Must be an ``int``
+                      or ``float`` — raising a ``Value`` to another
+                      ``Value`` is not supported here (would require
+                      ``exp`` / ``log``, which come in later days).
+
+        Returns:
+            A new ``Value`` node whose ``data = self.data ** exponent``
+            and whose ``_backward`` accumulates the power-rule gradient.
+
+        Raises:
+            TypeError: If ``exponent`` is not ``int`` or ``float``.
+
+        Example:
+            >>> x = Value(3.0)
+            >>> c = x ** 2        # forward: c.data == 9.0
+            >>> c.grad = 1.0
+            >>> c._backward()     # backward: x.grad == 6.0  (2 · 3¹)
+        """
+        if not isinstance(exponent, int | float):
+            raise TypeError(
+                f"Value.__pow__ only supports int/float exponents, "
+                f"got {type(exponent).__name__!r}"
+            )
+        base = self.data  # snapshot for hermetic closure
+        out = Value(base ** exponent, _children=(self,), _op=f"**{exponent}")
+
+        def _backward() -> None:
+            # ∂L/∂self += ∂L/∂out · n · base^(n-1)
+            self.grad += out.grad * exponent * (base ** (exponent - 1))
+
+        out._backward = _backward
+        return out
+
+    # ------------------------------------------------------------------
+    # Arithmetic: negation
+    # ------------------------------------------------------------------
+
+    def __neg__(self) -> Value:
+        """Unary negation: c = -self.
+
+        Mathematical background:
+            Negation is equivalent to scaling by -1::
+
+                c = -x = (-1) · x
+
+            So the gradient is::
+
+                ∂L/∂x += ∂L/∂c · (-1)
+
+            We implement ``__neg__`` by delegating to ``__mul__`` so that
+            the backward pass is handled by the already-tested
+            multiplication closure and no new code paths are introduced.
+
+        Returns:
+            A new ``Value`` node with ``data = -self.data``.
+
+        Example:
+            >>> x = Value(3.0)
+            >>> c = -x            # forward: c.data == -3.0
+            >>> c.grad = 1.0
+            >>> c._backward()     # backward: x.grad == -1.0
+        """
+        return self.__mul__(-1)
