@@ -390,3 +390,131 @@ class Value:
             >>> c._backward()     # backward: x.grad == -1.0
         """
         return self.__mul__(-1)
+
+    # ------------------------------------------------------------------
+    # Arithmetic: subtraction
+    # ------------------------------------------------------------------
+
+    def __sub__(self, other: Value | Numeric) -> Value:
+        """Forward pass of subtraction: c = self - other.
+
+        Mathematical background:
+            Subtraction is decomposed as addition of the negation::
+
+                a - b = a + (-b)
+
+            Gradients follow directly from the chain rule applied to the
+            underlying ``__add__`` and ``__neg__`` operations::
+
+                ∂L/∂a += ∂L/∂c · 1
+                ∂L/∂b += ∂L/∂c · (-1)
+
+            No new backward closure is required — the computation graph
+            created by ``__add__`` and ``__neg__`` carries the gradients
+            automatically.
+
+        Args:
+            other: The right-hand operand.  Raw scalars are auto-wrapped.
+
+        Returns:
+            A new ``Value`` node with ``data = self.data - other.data``.
+
+        Example:
+            >>> a = Value(5.0)
+            >>> b = Value(3.0)
+            >>> c = a - b          # forward: c.data == 2.0
+            >>> c.grad = 1.0
+            >>> c._backward()      # a.grad == 1.0, (-b).grad == 1.0 → b.grad == -1.0
+        """
+        other = other if isinstance(other, Value) else Value(other)
+        return self.__add__(-other)
+
+    def __rsub__(self, other: Value | Numeric) -> Value:
+        """Support  scalar - Value  (reflected subtraction).
+
+        Python calls ``other.__rsub__(self)`` when ``other.__sub__(self)``
+        returns ``NotImplemented``.
+
+        Subtraction is **not** commutative, so we cannot simply swap::
+
+            other - self  ≠  self - other
+
+        Instead we wrap ``other`` in a ``Value`` and compute
+        ``Value(other) - self``.
+
+        Args:
+            other: Left-hand operand (typically a raw int or float).
+
+        Returns:
+            A new ``Value`` with ``data = other - self.data``.
+
+        Example:
+            >>> v = Value(3.0)
+            >>> result = 5 - v     # calls v.__rsub__(5)
+            >>> result.data
+            2.0
+        """
+        other = other if isinstance(other, Value) else Value(other)
+        return other.__add__(-self)
+
+    # ------------------------------------------------------------------
+    # Arithmetic: division
+    # ------------------------------------------------------------------
+
+    def __truediv__(self, other: Value | Numeric) -> Value:
+        """Forward pass of division: c = self / other.
+
+        Mathematical background:
+            Division is decomposed as multiplication by the reciprocal::
+
+                a / b = a · b⁻¹ = a · b^(-1)
+
+            Gradients::
+
+                ∂L/∂a += ∂L/∂c · (1/b)
+                ∂L/∂b += ∂L/∂c · (-a / b²)
+
+            Again, no new backward closure — the graph built by ``__mul__``
+            and ``__pow__(-1)`` carries the full gradient computation.
+
+        Args:
+            other: The right-hand operand (divisor).  Raw scalars
+                   are auto-wrapped.  Division by zero will produce
+                   ``inf`` / ``nan`` consistent with IEEE-754.
+
+        Returns:
+            A new ``Value`` node with ``data = self.data / other.data``.
+
+        Example:
+            >>> a = Value(6.0)
+            >>> b = Value(2.0)
+            >>> c = a / b          # forward: c.data == 3.0
+            >>> c.grad = 1.0       # backward: a.grad == 0.5, b.grad == -1.5
+        """
+        other = other if isinstance(other, Value) else Value(other)
+        return self.__mul__(other.__pow__(-1))
+
+    def __rtruediv__(self, other: Value | Numeric) -> Value:
+        """Support  scalar / Value  (reflected division).
+
+        Python calls ``other.__rtruediv__(self)`` when
+        ``other.__truediv__(self)`` returns ``NotImplemented``.
+
+        Division is **not** commutative, so::
+
+            other / self  =  Value(other) · self^(-1)
+
+        Args:
+            other: Left-hand operand (numerator; typically int or float).
+
+        Returns:
+            A new ``Value`` with ``data = other / self.data``.
+
+        Example:
+            >>> v = Value(2.0)
+            >>> result = 6 / v     # calls v.__rtruediv__(6)
+            >>> result.data
+            3.0
+        """
+        other = other if isinstance(other, Value) else Value(other)
+        return other.__mul__(self.__pow__(-1))
