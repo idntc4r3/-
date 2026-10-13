@@ -25,6 +25,9 @@ from typing import TYPE_CHECKING, Callable
 if TYPE_CHECKING:
     pass  # future imports for type-checkers only
 
+# Runtime import of topo_sort is deferred to Value.backward() to avoid
+# a circular import:  graph.py  →  Value  →  graph.py
+
 __all__ = ["Value"]
 
 # Type alias for the raw numeric data accepted by Value.__init__
@@ -518,3 +521,73 @@ class Value:
         """
         other = other if isinstance(other, Value) else Value(other)
         return other.__mul__(self.__pow__(-1))
+
+    # ------------------------------------------------------------------
+    # Autograd: backward pass
+    # ------------------------------------------------------------------
+
+    def backward(self) -> None:
+        """Run reverse-mode automatic differentiation from this node.
+
+        After calling ``backward()`` every ``Value`` node reachable from
+        ``self`` will have its ``grad`` attribute set to
+        ``∂self / ∂node`` — the partial derivative of ``self`` with
+        respect to that node.
+
+        Algorithm
+        ---------
+        1. **Reset** all reachable gradients to ``0.0`` so that repeated
+           calls to ``backward()`` produce correct, fresh results.
+        2. **Seed** the root gradient: ``self.grad = 1.0`` because
+           ``∂self/∂self = 1``.
+        3. **Topological sort** the DAG via ``topo_sort(self)`` (Day 9),
+           giving nodes in *leaves-first* order.
+        4. **Reverse sweep**: iterate the sorted list in reverse order
+           (root first) and call each node's ``_backward()`` closure,
+           which accumulates ``grad`` into the node's predecessors using
+           the chain rule::
+
+               for node in reversed(topo_sort(self)):
+                   node._backward()
+
+        Mathematical justification
+        --------------------------
+        By the chain rule, the gradient flowing into a node ``v`` is the
+        sum of all upstream contributions::
+
+            ∂L/∂v = Σ  (∂L/∂u) · (∂u/∂v)   for each consumer u of v
+
+        Processing nodes in reverse-topological order guarantees that when
+        we process node ``v``, all consumers ``u`` have already had their
+        ``_backward`` called and have accumulated the correct ``u.grad``
+        before the contribution ``u.grad · ∂u/∂v`` is added to ``v.grad``.
+
+        Side effects
+        ------------
+        * Modifies ``grad`` on every reachable ``Value`` node.
+        * Safe to call multiple times — gradients are reset on each call.
+
+        Example::
+
+            a = Value(2.0)
+            b = Value(3.0)
+            L = a * b + a   # L = 2·3 + 2 = 8
+            L.backward()
+            # a.grad == 4.0  (∂L/∂a = b + 1 = 4)
+            # b.grad == 2.0  (∂L/∂b = a     = 2)
+        """
+        # Deferred import to avoid circular dependency at module load time.
+        from nanotorch.scalar.graph import topo_sort
+
+        order = topo_sort(self)
+
+        # Step 1: reset all gradients so repeated backward() is safe.
+        for node in order:
+            node.grad = 0.0
+
+        # Step 2: seed — derivative of the output w.r.t. itself is 1.
+        self.grad = 1.0
+
+        # Step 3: reverse-topological sweep — propagate gradients.
+        for node in reversed(order):
+            node._backward()
