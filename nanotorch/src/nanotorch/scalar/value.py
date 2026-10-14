@@ -526,6 +526,32 @@ class Value:
     # Autograd: backward pass
     # ------------------------------------------------------------------
 
+
+    # ------------------------------------------------------------------
+    # Activation functions
+    # ------------------------------------------------------------------
+
+    def relu(self) -> Value:
+        """Rectified Linear Unit activation function.
+
+        Mathematical definition:
+            f(x) = max(0, x)
+
+        Derivative (subgradient at x = 0 is 0.0, following PyTorch):
+            ∂f/∂x = 1.0  if x > 0 else 0.0
+
+        Returns:
+            A new ``Value`` containing max(0, self.data).
+        """
+        out = Value(self.data if self.data > 0 else 0.0, _children=(self,), _op="ReLU")
+        self_data = self.data
+
+        def _backward() -> None:
+            self.grad += out.grad * (1.0 if self_data > 0 else 0.0)
+
+        out._backward = _backward
+        return out
+
     def backward(self) -> None:
         """Run reverse-mode automatic differentiation from this node.
 
