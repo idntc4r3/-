@@ -552,6 +552,35 @@ class Value:
         out._backward = _backward
         return out
 
+
+    def sigmoid(self) -> Value:
+        """Logistic sigmoid activation function.
+
+        Mathematical definition:
+            σ(x) = 1 / (1 + exp(-x))
+
+        Derivative:
+            dσ/dx = σ(x) * (1 - σ(x))
+
+        Returns:
+            A new ``Value`` containing σ(self.data).
+        """
+        import math
+        x = self.data
+        if x >= 0:
+            s = 1.0 / (1.0 + math.exp(-x))
+        else:
+            z = math.exp(x)
+            s = z / (1.0 + z)
+
+        out = Value(s, _children=(self,), _op="sigmoid")
+
+        def _backward() -> None:
+            self.grad += out.grad * (s * (1.0 - s))
+
+        out._backward = _backward
+        return out
+
     def backward(self) -> None:
         """Run reverse-mode automatic differentiation from this node.
 
