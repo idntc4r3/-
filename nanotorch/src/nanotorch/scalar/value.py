@@ -581,6 +581,29 @@ class Value:
         out._backward = _backward
         return out
 
+
+    def tanh(self) -> Value:
+        """Hyperbolic tangent activation function.
+
+        Mathematical definition:
+            tanh(x) = (exp(x) - exp(-x)) / (exp(x) + exp(-x))
+
+        Derivative:
+            dtanh/dx = 1 - tanh(x)^2
+
+        Returns:
+            A new ``Value`` containing tanh(self.data).
+        """
+        import math
+        t = math.tanh(self.data)
+        out = Value(t, _children=(self,), _op="tanh")
+
+        def _backward() -> None:
+            self.grad += out.grad * (1.0 - t ** 2)
+
+        out._backward = _backward
+        return out
+
     def backward(self) -> None:
         """Run reverse-mode automatic differentiation from this node.
 
