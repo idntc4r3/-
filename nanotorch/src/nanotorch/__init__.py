@@ -18,3 +18,6 @@ nanotorch.loss    (Days 51–55)
 
 __version__: str = "0.1.0"
 __all__: list[str] = ["__version__"]
+
+from nanotorch.tensor import Tensor
+__all__ = ['Tensor', '__version__']
