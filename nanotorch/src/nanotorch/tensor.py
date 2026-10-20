@@ -8,6 +8,29 @@ import numpy as np
 ArrayLike = int | float | list[Any] | Sequence[Any] | np.ndarray
 
 
+def unbroadcast(grad: np.ndarray, target_shape: tuple[int, ...]) -> np.ndarray:
+    """Sum out broadcasted dimensions in grad to match target_shape.
+
+    Mathematical rule:
+        If dimension was expanded from 1 -> N or prepended, upstream gradient
+        must be summed across those axes.
+    """
+    if grad.shape == target_shape:
+        return grad
+
+    # Sum out extra leading dimensions
+    ndim_diff = grad.ndim - len(target_shape)
+    for _ in range(ndim_diff):
+        grad = grad.sum(axis=0)
+
+    # Sum along axes where target has size 1
+    for i, dim in enumerate(target_shape):
+        if dim == 1:
+            grad = grad.sum(axis=i, keepdims=True)
+
+    return grad
+
+
 class Tensor:
     """A multi-dimensional array with autograd tracking."""
 
