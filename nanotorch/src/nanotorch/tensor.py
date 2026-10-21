@@ -89,3 +89,25 @@ class Tensor:
     @classmethod
     def randn(cls, *shape: int, requires_grad: bool = False) -> Tensor:
         return cls(np.random.randn(*shape), requires_grad=requires_grad)
+
+
+    def __add__(self, other: Tensor | ArrayLike) -> Tensor:
+        other_t = other if isinstance(other, Tensor) else Tensor(other)
+        req_grad = self.requires_grad or other_t.requires_grad
+        out = Tensor(self.data + other_t.data, requires_grad=req_grad, _children=(self, other_t), _op="+")
+
+        def _backward() -> None:
+            if out.grad is None:
+                return
+            if self.requires_grad:
+                grad_self = unbroadcast(out.grad, self.shape)
+                self.grad = grad_self if self.grad is None else self.grad + grad_self
+            if other_t.requires_grad:
+                grad_other = unbroadcast(out.grad, other_t.shape)
+                other_t.grad = grad_other if other_t.grad is None else other_t.grad + grad_other
+
+        out._backward = _backward
+        return out
+
+    def __radd__(self, other: ArrayLike) -> Tensor:
+        return self.__add__(other)
