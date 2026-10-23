@@ -111,3 +111,24 @@ class Tensor:
 
     def __radd__(self, other: ArrayLike) -> Tensor:
         return self.__add__(other)
+
+
+    def __neg__(self) -> Tensor:
+        out = Tensor(-self.data, requires_grad=self.requires_grad, _children=(self,), _op="neg")
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            g = -out.grad
+            self.grad = g if self.grad is None else self.grad + g
+
+        out._backward = _backward
+        return out
+
+    def __sub__(self, other: Tensor | ArrayLike) -> Tensor:
+        other_t = other if isinstance(other, Tensor) else Tensor(other)
+        return self.__add__(-other_t)
+
+    def __rsub__(self, other: ArrayLike) -> Tensor:
+        other_t = Tensor(other)
+        return other_t.__sub__(self)
