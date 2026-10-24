@@ -132,3 +132,28 @@ class Tensor:
     def __rsub__(self, other: ArrayLike) -> Tensor:
         other_t = Tensor(other)
         return other_t.__sub__(self)
+
+
+    def __mul__(self, other: Tensor | ArrayLike) -> Tensor:
+        other_t = other if isinstance(other, Tensor) else Tensor(other)
+        req_grad = self.requires_grad or other_t.requires_grad
+        out = Tensor(self.data * other_t.data, requires_grad=req_grad, _children=(self, other_t), _op="*")
+
+        self_data = self.data
+        other_data = other_t.data
+
+        def _backward() -> None:
+            if out.grad is None:
+                return
+            if self.requires_grad:
+                grad_self = unbroadcast(out.grad * other_data, self.shape)
+                self.grad = grad_self if self.grad is None else self.grad + grad_self
+            if other_t.requires_grad:
+                grad_other = unbroadcast(out.grad * self_data, other_t.shape)
+                other_t.grad = grad_other if other_t.grad is None else other_t.grad + grad_other
+
+        out._backward = _backward
+        return out
+
+    def __rmul__(self, other: ArrayLike) -> Tensor:
+        return self.__mul__(other)
