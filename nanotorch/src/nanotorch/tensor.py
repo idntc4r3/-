@@ -157,3 +157,46 @@ class Tensor:
 
     def __rmul__(self, other: ArrayLike) -> Tensor:
         return self.__mul__(other)
+
+
+    def __pow__(self, exponent: int | float) -> Tensor:
+        if not isinstance(exponent, (int, float)):
+            raise TypeError(f"Tensor exponent must be int or float, got {type(exponent).__name__}")
+        out = Tensor(self.data ** exponent, requires_grad=self.requires_grad, _children=(self,), _op=f"**{exponent}")
+
+        self_data = self.data
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            local_g = out.grad * exponent * (self_data ** (exponent - 1))
+            g = unbroadcast(local_g, self.shape)
+            self.grad = g if self.grad is None else self.grad + g
+
+        out._backward = _backward
+        return out
+
+    def __truediv__(self, other: Tensor | ArrayLike) -> Tensor:
+        other_t = other if isinstance(other, Tensor) else Tensor(other)
+        req_grad = self.requires_grad or other_t.requires_grad
+        out = Tensor(self.data / other_t.data, requires_grad=req_grad, _children=(self, other_t), _op="/")
+
+        self_data = self.data
+        other_data = other_t.data
+
+        def _backward() -> None:
+            if out.grad is None:
+                return
+            if self.requires_grad:
+                g_self = unbroadcast(out.grad / other_data, self.shape)
+                self.grad = g_self if self.grad is None else self.grad + g_self
+            if other_t.requires_grad:
+                g_other = unbroadcast(-out.grad * self_data / (other_data ** 2), other_t.shape)
+                other_t.grad = g_other if other_t.grad is None else other_t.grad + g_other
+
+        out._backward = _backward
+        return out
+
+    def __rtruediv__(self, other: ArrayLike) -> Tensor:
+        other_t = Tensor(other)
+        return other_t.__truediv__(self)
