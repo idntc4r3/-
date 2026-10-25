@@ -200,3 +200,14 @@ class Tensor:
     def __rtruediv__(self, other: ArrayLike) -> Tensor:
         other_t = Tensor(other)
         return other_t.__truediv__(self)
+
+
+    def matmul(self, other: Tensor) -> Tensor:
+        if not isinstance(other, Tensor):
+            other = Tensor(other)
+        req_grad = self.requires_grad or other.requires_grad
+        out = Tensor(np.matmul(self.data, other.data), requires_grad=req_grad, _children=(self, other), _op="@")
+        return out
+
+    def __matmul__(self, other: Tensor) -> Tensor:
+        return self.matmul(other)
