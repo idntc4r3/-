@@ -207,6 +207,23 @@ class Tensor:
             other = Tensor(other)
         req_grad = self.requires_grad or other.requires_grad
         out = Tensor(np.matmul(self.data, other.data), requires_grad=req_grad, _children=(self, other), _op="@")
+
+        self_data = self.data
+        other_data = other.data
+
+        def _backward() -> None:
+            if out.grad is None:
+                return
+            if self.requires_grad:
+                grad_self = np.matmul(out.grad, other_data.T)
+                grad_self = unbroadcast(grad_self, self.shape)
+                self.grad = grad_self if self.grad is None else self.grad + grad_self
+            if other.requires_grad:
+                grad_other = np.matmul(self_data.T, out.grad)
+                grad_other = unbroadcast(grad_other, other.shape)
+                other.grad = grad_other if other.grad is None else other.grad + grad_other
+
+        out._backward = _backward
         return out
 
     def __matmul__(self, other: Tensor) -> Tensor:
