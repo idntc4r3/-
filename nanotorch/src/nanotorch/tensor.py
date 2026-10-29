@@ -228,3 +228,19 @@ class Tensor:
 
     def __matmul__(self, other: Tensor) -> Tensor:
         return self.matmul(other)
+
+    @property
+    def T(self) -> Tensor:
+        return self.transpose()
+    
+    def transpose(self, *axes: int) -> Tensor:
+        if not axes:
+            axes = tuple(reversed(range(self.ndim)))
+        out = Tensor(np.transpose(self.data, axes), requires_grad=self.requires_grad, _children=(self,), _op="T")
+        def _backward() -> None:
+            if out.grad is not None and self.requires_grad:
+                inv_axes = np.argsort(axes)
+                g = np.transpose(out.grad, inv_axes)
+                self.grad = g if self.grad is None else self.grad + g
+        out._backward = _backward
+        return out
