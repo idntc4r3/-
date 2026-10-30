@@ -244,3 +244,13 @@ class Tensor:
                 self.grad = g if self.grad is None else self.grad + g
         out._backward = _backward
         return out
+
+    def reshape(self, *shape: int) -> Tensor:
+        out = Tensor(self.data.reshape(*shape), requires_grad=self.requires_grad, _children=(self,), _op="reshape")
+        orig_shape = self.shape
+        def _backward() -> None:
+            if out.grad is not None and self.requires_grad:
+                g = out.grad.reshape(orig_shape)
+                self.grad = g if self.grad is None else self.grad + g
+        out._backward = _backward
+        return out
