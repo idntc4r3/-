@@ -254,3 +254,7 @@ class Tensor:
                 self.grad = g if self.grad is None else self.grad + g
         out._backward = _backward
         return out
+
+    def sum(self, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Tensor:
+        out = Tensor(np.sum(self.data, axis=axis, keepdims=keepdims), requires_grad=self.requires_grad, _children=(self,), _op="sum")
+        return out
