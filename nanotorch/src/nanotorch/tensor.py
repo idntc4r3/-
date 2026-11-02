@@ -257,4 +257,19 @@ class Tensor:
 
     def sum(self, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Tensor:
         out = Tensor(np.sum(self.data, axis=axis, keepdims=keepdims), requires_grad=self.requires_grad, _children=(self,), _op="sum")
+        orig_shape = self.shape
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            g = out.grad
+            if not keepdims and axis is not None:
+                # restore reduced dimensions for broadcast
+                axes = (axis,) if isinstance(axis, int) else axis
+                shape = list(orig_shape)
+                for a in axes:
+                    shape[a] = 1
+                g = g.reshape(shape)
+            g = np.broadcast_to(g, orig_shape)
+            self.grad = g if self.grad is None else self.grad + g
+        out._backward = _backward
         return out
