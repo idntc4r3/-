@@ -273,3 +273,8 @@ class Tensor:
             self.grad = g if self.grad is None else self.grad + g
         out._backward = _backward
         return out
+
+    def mean(self, axis: int | tuple[int, ...] | None = None, keepdims: bool = False) -> Tensor:
+        s = self.sum(axis=axis, keepdims=keepdims)
+        factor = self.size if axis is None else (np.prod([self.shape[a] for a in ((axis,) if isinstance(axis, int) else axis)]))
+        return s / float(factor)
