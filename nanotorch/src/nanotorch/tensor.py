@@ -278,3 +278,14 @@ class Tensor:
         s = self.sum(axis=axis, keepdims=keepdims)
         factor = self.size if axis is None else (np.prod([self.shape[a] for a in ((axis,) if isinstance(axis, int) else axis)]))
         return s / float(factor)
+
+    def __getitem__(self, idx: Any) -> Tensor:
+        out = Tensor(self.data[idx], requires_grad=self.requires_grad, _children=(self,), _op="slice")
+        orig_shape = self.shape
+        def _backward() -> None:
+            if out.grad is not None and self.requires_grad:
+                g = np.zeros(orig_shape, dtype=np.float64)
+                np.add.at(g, idx, out.grad)
+                self.grad = g if self.grad is None else self.grad + g
+        out._backward = _backward
+        return out
