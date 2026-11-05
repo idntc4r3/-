@@ -289,3 +289,18 @@ class Tensor:
                 self.grad = g if self.grad is None else self.grad + g
         out._backward = _backward
         return out
+
+    def backward(self) -> None:
+        order: list[Tensor] = []
+        visited: set[int] = set()
+        def _dfs(node: Tensor) -> None:
+            if id(node) not in visited:
+                visited.add(id(node))
+                for child in node._prev:
+                    _dfs(child)
+                order.append(node)
+        _dfs(self)
+        if self.grad is None:
+            self.grad = np.ones_like(self.data)
+        for node in reversed(order):
+            node._backward()
