@@ -47,5 +47,3 @@ nanotorch/
 ├── pyproject.toml
 └── .gitignore
 ```
-
-*More to come — stay tuned for Day 2!*
