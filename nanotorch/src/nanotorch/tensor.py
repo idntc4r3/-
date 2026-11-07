@@ -169,7 +169,10 @@ class Tensor:
         def _backward() -> None:
             if out.grad is None or not self.requires_grad:
                 return
-            local_g = out.grad * exponent * (self_data ** (exponent - 1))
+            if exponent == 0:
+                local_g = np.zeros_like(self_data)
+            else:
+                local_g = out.grad * exponent * (self_data ** (exponent - 1))
             g = unbroadcast(local_g, self.shape)
             self.grad = g if self.grad is None else self.grad + g
 
