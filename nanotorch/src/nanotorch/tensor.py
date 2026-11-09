@@ -303,7 +303,15 @@ class Tensor:
                     _dfs(child)
                 order.append(node)
         _dfs(self)
-        if self.grad is None:
-            self.grad = np.ones_like(self.data)
+        # Intermediate gradients belong to this traversal; keeping them would
+        # propagate old gradients again on subsequent backward calls.
+        for node in order:
+            if node._prev:
+                node.grad = None
+        seed = np.ones_like(self.data)
+        if not self._prev and self.grad is not None:
+            self.grad = self.grad + seed
+        else:
+            self.grad = seed
         for node in reversed(order):
             node._backward()
