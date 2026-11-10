@@ -217,12 +217,23 @@ class Tensor:
         def _backward() -> None:
             if out.grad is None:
                 return
+            a = self_data[np.newaxis, :] if self_data.ndim == 1 else self_data
+            b = other_data[..., np.newaxis] if other_data.ndim == 1 else other_data
+            grad = out.grad
+            if self_data.ndim == 1:
+                grad = np.expand_dims(grad, -2 if other_data.ndim > 1 else 0)
+            if other_data.ndim == 1:
+                grad = np.expand_dims(grad, -1)
             if self.requires_grad:
-                grad_self = np.matmul(out.grad, other_data.T)
+                grad_self = np.matmul(grad, np.swapaxes(b, -1, -2))
+                if self_data.ndim == 1:
+                    grad_self = np.squeeze(grad_self, axis=-2)
                 grad_self = unbroadcast(grad_self, self.shape)
                 self.grad = grad_self if self.grad is None else self.grad + grad_self
             if other.requires_grad:
-                grad_other = np.matmul(self_data.T, out.grad)
+                grad_other = np.matmul(np.swapaxes(a, -1, -2), grad)
+                if other_data.ndim == 1:
+                    grad_other = np.squeeze(grad_other, axis=-1)
                 grad_other = unbroadcast(grad_other, other.shape)
                 other.grad = grad_other if other.grad is None else other.grad + grad_other
 
