@@ -307,13 +307,15 @@ class Tensor:
     def backward(self) -> None:
         order: list[Tensor] = []
         visited: set[int] = set()
-        def _dfs(node: Tensor) -> None:
-            if id(node) not in visited:
-                visited.add(id(node))
-                for child in node._prev:
-                    _dfs(child)
+        stack: list[tuple[Tensor, bool]] = [(self, False)]
+        while stack:
+            node, expanded = stack.pop()
+            if expanded:
                 order.append(node)
-        _dfs(self)
+            elif id(node) not in visited:
+                visited.add(id(node))
+                stack.append((node, True))
+                stack.extend((child, False) for child in node._prev)
         # Intermediate gradients belong to this traversal; keeping them would
         # propagate old gradients again on subsequent backward calls.
         for node in order:
