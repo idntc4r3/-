@@ -306,7 +306,15 @@ class Tensor:
         out._backward = _backward
         return out
 
-    def backward(self) -> None:
+    def backward(self, gradient: ArrayLike | None = None) -> None:
+        """Propagate a seed gradient through the computation graph.
+
+        The seed must have the same shape as this tensor. If omitted, an
+        array of ones is used, preserving the existing backward behaviour.
+        """
+        seed = np.ones_like(self.data) if gradient is None else np.asarray(gradient, dtype=np.float64)
+        if seed.shape != self.shape:
+            raise ValueError(f"Gradient shape {seed.shape} does not match tensor shape {self.shape}")
         order: list[Tensor] = []
         visited: set[int] = set()
         stack: list[tuple[Tensor, bool]] = [(self, False)]
@@ -323,10 +331,10 @@ class Tensor:
         for node in order:
             if node._prev:
                 node.grad = None
-        seed = np.ones_like(self.data)
         if not self._prev and self.grad is not None:
             self.grad = self.grad + seed
         else:
             self.grad = seed
         for node in reversed(order):
             node._backward()
+
