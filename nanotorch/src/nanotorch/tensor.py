@@ -159,6 +159,23 @@ class Tensor:
         return self.__mul__(other)
 
 
+    def exp(self) -> Tensor:
+        """Apply the exponential elementwise and propagate its gradient.
+
+        For each element, the local derivative of exp(x) is exp(x).
+        """
+        result = np.exp(self.data)
+        out = Tensor(result, requires_grad=self.requires_grad, _children=(self,), _op="exp")
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            grad = out.grad * result
+            self.grad = grad if self.grad is None else self.grad + grad
+
+        out._backward = _backward
+        return out
+
     def __pow__(self, exponent: int | float) -> Tensor:
         if not isinstance(exponent, (int, float)):
             raise TypeError(f"Tensor exponent must be int or float, got {type(exponent).__name__}")
