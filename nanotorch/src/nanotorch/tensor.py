@@ -176,6 +176,24 @@ class Tensor:
         out._backward = _backward
         return out
 
+    def log(self) -> Tensor:
+        """Apply the natural logarithm elementwise.
+
+        The local derivative is 1 / x. Nonpositive inputs follow NumPy's
+        floating-point behavior: log(0) is -inf and log(negative) is NaN.
+        """
+        data = self.data
+        out = Tensor(np.log(data), requires_grad=self.requires_grad, _children=(self,), _op="log")
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            grad = out.grad / data
+            self.grad = grad if self.grad is None else self.grad + grad
+
+        out._backward = _backward
+        return out
+
     def __pow__(self, exponent: int | float) -> Tensor:
         if not isinstance(exponent, (int, float)):
             raise TypeError(f"Tensor exponent must be int or float, got {type(exponent).__name__}")
