@@ -159,6 +159,22 @@ class Tensor:
         return self.__mul__(other)
 
 
+    def relu(self) -> Tensor:
+        """Apply ReLU elementwise, using zero as the derivative at zero."""
+        data = self.data
+        out = Tensor(np.maximum(data, 0), requires_grad=self.requires_grad, _children=(self,), _op="relu")
+        # PyTorch passes the upstream gradient through for NaN values.
+        mask = ~(data <= 0)
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            grad = np.where(mask, out.grad, 0.0)
+            self.grad = grad if self.grad is None else self.grad + grad
+
+        out._backward = _backward
+        return out
+
     def exp(self) -> Tensor:
         """Apply the exponential elementwise and propagate its gradient.
 
