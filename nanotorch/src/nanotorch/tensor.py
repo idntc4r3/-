@@ -159,6 +159,24 @@ class Tensor:
         return self.__mul__(other)
 
 
+    def sigmoid(self) -> Tensor:
+        """Apply the logistic function elementwise with a stable exponent.
+
+        For y = sigmoid(x), the local derivative is y * (1 - y).
+        """
+        z = np.exp(-np.abs(self.data))
+        data = np.where(self.data >= 0, 1.0 / (1.0 + z), z / (1.0 + z))
+        out = Tensor(data, requires_grad=self.requires_grad, _children=(self,), _op="sigmoid")
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            grad = out.grad * data * (1.0 - data)
+            self.grad = grad if self.grad is None else self.grad + grad
+
+        out._backward = _backward
+        return out
+
     def relu(self) -> Tensor:
         """Apply ReLU elementwise, using zero as the derivative at zero."""
         data = self.data
