@@ -37,3 +37,21 @@ class Sigmoid:
     def parameters(self) -> list[Tensor]:
         """Return an empty list because Sigmoid has no trainable parameters."""
         return []
+
+
+class Tanh:
+    """Apply hyperbolic tangent to each input element."""
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Return tanh(x), preserving the computation graph."""
+        if not isinstance(x, Tensor):
+            raise TypeError("Tanh expects a Tensor input")
+        return x.tanh()
+
+    def __call__(self, x: Tensor) -> Tensor:
+        """Evaluate the activation."""
+        return self.forward(x)
+
+    def parameters(self) -> list[Tensor]:
+        """Return an empty list because Tanh has no trainable parameters."""
+        return []

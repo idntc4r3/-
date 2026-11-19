@@ -159,6 +159,20 @@ class Tensor:
         return self.__mul__(other)
 
 
+    def tanh(self) -> Tensor:
+        """Apply hyperbolic tangent elementwise; its derivative is 1 - tanh(x)^2."""
+        data = np.tanh(self.data)
+        out = Tensor(data, requires_grad=self.requires_grad, _children=(self,), _op="tanh")
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            grad = out.grad * (1.0 - data ** 2)
+            self.grad = grad if self.grad is None else self.grad + grad
+
+        out._backward = _backward
+        return out
+
     def sigmoid(self) -> Tensor:
         """Apply the logistic function elementwise with a stable exponent.
 
