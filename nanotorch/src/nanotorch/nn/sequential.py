@@ -25,6 +25,22 @@ class Sequential:
             if not callable(layer) or not callable(getattr(layer, "parameters", None)):
                 raise TypeError("Each layer must be callable and provide parameters()")
         self.layers = tuple(layers)
+        self.training = True
+
+    def train(self, mode: bool = True) -> "Sequential":
+        """Set training mode on this container and mode-aware children."""
+        if not isinstance(mode, bool):
+            raise TypeError("mode must be a bool")
+        self.training = mode
+        for layer in self.layers:
+            setter = getattr(layer, "train", None)
+            if callable(setter):
+                setter(mode)
+        return self
+
+    def eval(self) -> "Sequential":
+        """Switch mode-aware children to evaluation mode."""
+        return self.train(False)
 
     def forward(self, x: Tensor) -> Tensor:
         """Pass the input through each layer, keeping the autograd graph."""
