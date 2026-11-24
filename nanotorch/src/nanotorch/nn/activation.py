@@ -55,3 +55,24 @@ class Tanh:
     def parameters(self) -> list[Tensor]:
         """Return an empty list because Tanh has no trainable parameters."""
         return []
+
+
+class Softmax:
+    """Normalize values along a specified axis to a probability distribution."""
+
+    def __init__(self, dim: int = -1) -> None:
+        self.dim = dim
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Compute softmax while preserving the computation graph."""
+        if not isinstance(x, Tensor):
+            raise TypeError("Softmax expects a Tensor input")
+        return x.softmax(self.dim)
+
+    def __call__(self, x: Tensor) -> Tensor:
+        """Evaluate the activation."""
+        return self.forward(x)
+
+    def parameters(self) -> list[Tensor]:
+        """Return an empty list because Softmax has no trainable parameters."""
+        return []

@@ -159,6 +159,34 @@ class Tensor:
         return self.__mul__(other)
 
 
+    def softmax(self, dim: int = -1) -> Tensor:
+        """Normalize along one axis using a stable exponential.
+
+        For output y and upstream gradient g the derivative is
+        y * (g - sum(g * y, axis=dim)). Inputs must have at least one axis.
+        """
+        if not isinstance(dim, int) or isinstance(dim, bool):
+            raise TypeError("dim must be an integer")
+        if self.ndim == 0 or not -self.ndim <= dim < self.ndim:
+            raise IndexError("softmax dimension out of range")
+        axis = dim % self.ndim
+        if self.data.size == 0:
+            values = np.empty_like(self.data)
+        else:
+            shifted = self.data - np.max(self.data, axis=axis, keepdims=True)
+            exponent = np.exp(shifted)
+            values = exponent / exponent.sum(axis=axis, keepdims=True)
+        out = Tensor(values, requires_grad=self.requires_grad, _children=(self,), _op="softmax")
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            grad = values * (out.grad - np.sum(out.grad * values, axis=axis, keepdims=True))
+            self.grad = grad if self.grad is None else self.grad + grad
+
+        out._backward = _backward
+        return out
+
     def tanh(self) -> Tensor:
         """Apply hyperbolic tangent elementwise; its derivative is 1 - tanh(x)^2."""
         data = np.tanh(self.data)
