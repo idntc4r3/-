@@ -76,3 +76,24 @@ class Softmax:
     def parameters(self) -> list[Tensor]:
         """Return an empty list because Softmax has no trainable parameters."""
         return []
+
+
+class LogSoftmax:
+    """Compute log probabilities along one axis."""
+
+    def __init__(self, dim: int = -1) -> None:
+        self.dim = dim
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Compute log-softmax while preserving the computation graph."""
+        if not isinstance(x, Tensor):
+            raise TypeError("LogSoftmax expects a Tensor input")
+        return x.log_softmax(self.dim)
+
+    def __call__(self, x: Tensor) -> Tensor:
+        """Evaluate the activation."""
+        return self.forward(x)
+
+    def parameters(self) -> list[Tensor]:
+        """Return an empty list because LogSoftmax has no parameters."""
+        return []

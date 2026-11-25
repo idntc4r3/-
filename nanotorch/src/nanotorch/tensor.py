@@ -159,6 +159,37 @@ class Tensor:
         return self.__mul__(other)
 
 
+    def log_softmax(self, dim: int = -1) -> Tensor:
+        """Compute log-softmax along one axis using a shifted log-sum-exp.
+
+        For upstream g, the gradient is g - softmax(x) * sum(g, axis=dim).
+        Inputs must have at least one axis.
+        """
+        if not isinstance(dim, int) or isinstance(dim, bool):
+            raise TypeError("dim must be an integer")
+        if self.ndim == 0 or not -self.ndim <= dim < self.ndim:
+            raise IndexError("log_softmax dimension out of range")
+        axis = dim % self.ndim
+        if self.data.size == 0:
+            values = np.empty_like(self.data)
+            probabilities = np.empty_like(self.data)
+        else:
+            shifted = self.data - np.max(self.data, axis=axis, keepdims=True)
+            exponents = np.exp(shifted)
+            total = exponents.sum(axis=axis, keepdims=True)
+            values = shifted - np.log(total)
+            probabilities = exponents / total
+        out = Tensor(values, requires_grad=self.requires_grad, _children=(self,), _op="log_softmax")
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            grad = out.grad - probabilities * np.sum(out.grad, axis=axis, keepdims=True)
+            self.grad = grad if self.grad is None else self.grad + grad
+
+        out._backward = _backward
+        return out
+
     def softmax(self, dim: int = -1) -> Tensor:
         """Normalize along one axis using a stable exponential.
 
