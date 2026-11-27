@@ -21,6 +21,27 @@ class ReLU:
         return []
 
 
+class LeakyReLU:
+    """Apply x when positive and negative_slope * x otherwise."""
+
+    def __init__(self, negative_slope: float = 0.01) -> None:
+        self.negative_slope = negative_slope
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Evaluate the activation and preserve the computation graph."""
+        if not isinstance(x, Tensor):
+            raise TypeError("LeakyReLU expects a Tensor input")
+        return x.leaky_relu(self.negative_slope)
+
+    def __call__(self, x: Tensor) -> Tensor:
+        """Evaluate the layer."""
+        return self.forward(x)
+
+    def parameters(self) -> list[Tensor]:
+        """Return an empty list because the layer has no trainable parameters."""
+        return []
+
+
 class Sigmoid:
     """Apply the logistic activation to each input element."""
 

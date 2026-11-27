@@ -250,6 +250,21 @@ class Tensor:
         out._backward = _backward
         return out
 
+    def leaky_relu(self, negative_slope: float = 0.01) -> Tensor:
+        """Apply LeakyReLU elementwise; the derivative at zero is the slope."""
+        positive = self.data > 0
+        values = np.where(positive, self.data, self.data * negative_slope)
+        out = Tensor(values, requires_grad=self.requires_grad, _children=(self,), _op="leaky_relu")
+
+        def _backward() -> None:
+            if out.grad is None or not self.requires_grad:
+                return
+            grad = out.grad * np.where(positive, 1.0, negative_slope)
+            self.grad = grad if self.grad is None else self.grad + grad
+
+        out._backward = _backward
+        return out
+
     def relu(self) -> Tensor:
         """Apply ReLU elementwise, using zero as the derivative at zero."""
         data = self.data
